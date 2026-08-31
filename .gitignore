@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+
+backend/screenshots/*
+!backend/screenshots/.gitkeep
+
+.env
+.vscode/

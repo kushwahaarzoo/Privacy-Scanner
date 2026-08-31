@@ -1,0 +1,79 @@
+{
+    "google-analytics.com": {
+        "name": "Google Analytics",
+        "company": "Google",
+        "category": "analytics"
+    },
+
+    "googletagmanager.com": {
+        "name": "Google Tag Manager",
+        "company": "Google",
+        "category": "tag-management"
+    },
+
+    "doubleclick.net": {
+        "name": "DoubleClick",
+        "company": "Google",
+        "category": "advertising"
+    },
+
+    "googleadservices.com": {
+        "name": "Google Ads",
+        "company": "Google",
+        "category": "advertising"
+    },
+
+    "connect.facebook.net": {
+        "name": "Meta Pixel",
+        "company": "Meta",
+        "category": "advertising"
+    },
+
+    "facebook.com": {
+        "name": "Meta",
+        "company": "Meta",
+        "category": "advertising"
+    },
+
+    "clarity.ms": {
+        "name": "Microsoft Clarity",
+        "company": "Microsoft",
+        "category": "analytics"
+    },
+
+    "hotjar.com": {
+        "name": "Hotjar",
+        "company": "Contentsquare",
+        "category": "analytics"
+    },
+
+    "hotjar.io": {
+        "name": "Hotjar",
+        "company": "Contentsquare",
+        "category": "analytics"
+    },
+
+    "segment.com": {
+        "name": "Segment",
+        "company": "Twilio",
+        "category": "analytics"
+    },
+
+    "mixpanel.com": {
+        "name": "Mixpanel",
+        "company": "Mixpanel",
+        "category": "analytics"
+    },
+
+    "amplitude.com": {
+        "name": "Amplitude",
+        "company": "Amplitude",
+        "category": "analytics"
+    },
+
+    "bat.bing.com": {
+        "name": "Microsoft Advertising",
+        "company": "Microsoft",
+        "category": "advertising"
+    }
+}

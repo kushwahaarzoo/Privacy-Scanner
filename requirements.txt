@@ -1,0 +1,4 @@
+fastapi[standard]
+playwright
+pydantic
+tldextract
