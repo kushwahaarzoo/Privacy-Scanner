@@ -2,57 +2,60 @@
 
 A browser-based website privacy analysis tool built with Python.
 
-Privacy Scanner analyzes publicly accessible websites and identifies privacy-related elements such as cookies, third-party domains, known trackers, browser storage, network activity, and screenshots.
+Privacy Scanner analyzes websites to identify privacy-related information, including cookies, third-party domains, known trackers, browser storage, consent mechanisms, fingerprinting indicators, privacy policies, and other privacy signals.
 
-The project uses browser automation to observe how a website behaves when loaded in a real browser environment.
+The project uses browser automation and modular scanning components to examine observable website behavior and help identify potential privacy concerns.
 
 ---
 
 # 📌 Purpose
 
-Modern websites often communicate with multiple external services while loading. These services may be used for legitimate purposes such as content delivery, analytics, authentication, embedded content, or advertising. Some may also be associated with user tracking.
+Modern websites interact with multiple services and technologies while loading. These interactions may support analytics, advertising, authentication, content delivery, personalization, or user tracking.
 
-The purpose of Privacy Scanner is to provide a structured way to analyze these privacy-related behaviors.
+The purpose of Privacy Scanner is to analyze these interactions and provide structured information about a website's privacy-related behavior.
 
-The scanner can help identify:
+The scanner helps investigate:
 
-* Cookies created or available during a browsing session
-* First-party and third-party domains
-* Known trackers
-* Network requests
-* Browser storage usage
-* Redirected URLs
-* Website metadata
-* Visual screenshots of scanned websites
-  
+- Cookies and their security attributes
+- First-party and third-party domains
+- Known tracking services
+- Browser network requests
+- Browser storage usage
+- Website redirects and metadata
+- Consent mechanisms
+- Browser fingerprinting indicators
+- Privacy policy information
+- Privacy-related signals
+
 ---
 
 # ✨ Features
 
 ## 🌐 Browser-Based Website Scanning
 
-The scanner opens the target website using a browser automation engine and analyzes the website after it has loaded.
+The scanner opens a target website using browser automation and collects information about its observable behavior.
 
-This allows the scanner to observe behavior that may not be visible through static HTML analysis alone.
+The analysis may include:
 
-The scanner can collect information such as:
+- Original URL
+- Final URL after redirects
+- Website title
+- Network requests
+- Cookies
+- Domain information
+- Tracker matches
+- Browser storage
+- Privacy-related indicators
 
-* Original URL
-* Final URL after redirects
-* Page title
-* Network activity
-* Cookies
-* Third-party domains
-* Known trackers
-* Browser storage data
+Browser-based scanning helps identify behavior that may not be visible through static HTML analysis alone.
 
 ---
 
 ## 🔄 Redirect Detection
 
-Websites may redirect visitors to another URL.
+The scanner can record the final URL reached after navigating to a website.
 
-For example:
+Example:
 
 ```text
 http://example.com
@@ -60,41 +63,27 @@ http://example.com
 https://www.example.com
 ```
 
-The scanner records the final URL reached by the browser.
-
-This helps identify:
-
-* HTTP to HTTPS redirects
-* Domain redirects
-* Subdomain redirects
-* Website destination changes
+Redirect analysis helps identify changes in the website destination during navigation.
 
 ---
 
 ## 🍪 Cookie Analysis
 
-The scanner collects cookies available during the browser session.
+The scanner collects and analyzes cookie information available during the browser session.
 
-Cookie information may include:
+Relevant cookie attributes may include:
 
-* Cookie name
-* Domain
-* Path
-* Expiration
-* Secure flag
-* HTTP-only flag
-* SameSite policy
+- Cookie name
+- Domain
+- Path
+- Expiration
+- Secure flag
+- HTTP-only flag
+- SameSite policy
 
-Cookies can be used for different purposes, including:
+Cookies can support authentication, session management, user preferences, analytics, and tracking.
 
-* Authentication
-* Session management
-* User preferences
-* Analytics
-* Advertising
-* Tracking
-
-Privacy Scanner collects this information so it can be analyzed as part of the overall privacy behavior of a website.
+Their presence alone does not establish that a website is violating privacy.
 
 ---
 
@@ -102,11 +91,9 @@ Privacy Scanner collects this information so it can be analyzed as part of the o
 
 The scanner analyzes domains involved in website activity.
 
-It helps distinguish between:
-
 ### First-Party Domains
 
-Domains directly associated with the website being scanned.
+Domains associated with the website being scanned.
 
 Example:
 
@@ -116,96 +103,138 @@ example.com
 
 ### Third-Party Domains
 
-External domains contacted while the website is loading.
+External domains contacted while the website loads.
 
 Example:
 
 ```text
-analytics-service.com
+analytics.example-service.com
 ```
 
-Third-party domains may be associated with:
+Third-party domains may provide analytics, advertising, content delivery, embedded services, or tracking functionality.
 
-* Analytics
-* Advertising
-* Content delivery
-* Social media
-* Embedded services
-* Tracking technologies
-
-The presence of a third-party domain alone does not necessarily indicate a privacy risk.
+The presence of a third-party domain does not automatically indicate a privacy risk.
 
 ---
 
 ## 🕵️ Tracker Detection
 
-Privacy Scanner includes tracker detection capabilities.
+The tracker detection module identifies domains or requests that match known tracking services.
 
-Known tracker information is maintained in:
-
-```text
-backend/data/trackers.json
-```
-
-The scanner compares detected domains and requests against known tracker data.
-
-Potential tracker categories may include:
-
-* Analytics
-* Advertising
-* Social media
-* Marketing
-* User tracking
-* Other third-party tracking services
-
-The tracker detection logic is handled by:
+The relevant components are:
 
 ```text
 backend/scanner/trackers.py
+backend/data/trackers.json
 ```
+
+The local tracker database provides information used to recognize known trackers.
+
+Potential tracker categories include analytics, advertising, marketing, and social media services, depending on the available database.
+
+Detection accuracy depends on the coverage and quality of the tracker data.
 
 ---
 
 ## 💾 Browser Storage Analysis
 
-Modern websites can store information in the browser using mechanisms other than cookies.
+The storage analysis module examines browser storage mechanisms used by websites.
 
-The scanner includes storage analysis through:
+Module:
 
 ```text
 backend/scanner/storage.py
 ```
 
-Browser storage analysis can help identify privacy-relevant data stored by websites.
+Storage mechanisms may include:
 
-This may include:
+- Local Storage
+- Session Storage
+- Other supported browser storage mechanisms
 
-* Local Storage
-* Session Storage
-* Other browser-accessible storage information supported by the scanner
+Browser storage can support normal website functionality but may also retain information that contributes to user identification.
 
-Browser storage can be used for legitimate website functionality, but it may also contribute to persistent user identification.
+---
+
+## 🛡️ Consent Analysis
+
+The consent analysis module examines website consent-related elements and indicators.
+
+Module:
+
+```text
+backend/scanner/consent.py
+```
+
+Consent analysis can help investigate how websites present consent options and privacy-related choices.
+
+The findings depend on the consent detection logic implemented in the scanner. Detecting a consent banner does not establish that the website obtains valid consent or complies with applicable privacy regulations.
+
+---
+
+## 🧬 Fingerprinting Analysis
+
+The fingerprinting analysis module examines indicators associated with browser fingerprinting.
+
+Module:
+
+```text
+backend/scanner/fingerprinting.py
+```
+
+Browser fingerprinting involves collecting characteristics of a browser or device that may help distinguish it from other users.
+
+Depending on the implemented detection logic, analysis may examine observable fingerprinting-related scripts or browser behavior.
+
+Detection of indicators does not necessarily prove that a website successfully fingerprints users.
+
+---
+
+## 📄 Privacy Policy Analysis
+
+The privacy policy module supports analysis of available website privacy policy information.
+
+Module:
+
+```text
+backend/scanner/privacy_policy.py
+```
+
+Privacy policies describe how websites may collect, use, share, and retain information.
+
+This module provides a foundation for examining privacy policy information as part of the overall website analysis.
+
+Automated analysis should not be treated as a legal determination of compliance.
+
+---
+
+## 📊 Privacy Signals
+
+The privacy signals module collects or evaluates privacy-related indicators.
+
+Module:
+
+```text
+backend/scanner/privacy_signals.py
+```
+
+These signals can help organize findings from the website scanning process and support a broader privacy assessment.
+
+The significance of each signal depends on the detection rules and analysis logic implemented in the project.
 
 ---
 
 ## 📸 Website Screenshots
 
-The project includes a dedicated screenshots directory:
+The project includes a directory for storing screenshots captured during website scanning.
+
+Directory:
 
 ```text
 backend/screenshots/
 ```
 
-Screenshots can be used to preserve a visual record of the website during scanning.
-
-This can be useful for:
-
-* Documentation
-* Privacy research
-* Scan reports
-* Website comparison
-* Debugging
-* Visual verification
+Screenshots can help document the website's appearance during a scan and support debugging, research, and visual review.
 
 ---
 
@@ -221,10 +250,14 @@ privacy-scanner/
 │   ├── scanner/
 │   │   ├── __init__.py
 │   │   ├── browser.py
-│   │   ├── domains.py
+│   │   ├── consent.py
 │   │   ├── cookies.py
-│   │   ├── trackers.py
-│   │   └── storage.py
+│   │   ├── domains.py
+│   │   ├── fingerprinting.py
+│   │   ├── privacy_policy.py
+│   │   ├── privacy_signals.py
+│   │   ├── storage.py
+│   │   └── trackers.py
 │   │
 │   ├── data/
 │   │   └── trackers.json
@@ -232,7 +265,8 @@ privacy-scanner/
 │   └── screenshots/
 │
 ├── requirements.txt
-└── .gitignore
+├── .gitignore
+└── README.md
 ```
 
 ---
@@ -241,111 +275,58 @@ privacy-scanner/
 
 ## `backend/main.py`
 
-This is the main backend entry point of the application.
+The main backend entry point.
 
-It is responsible for connecting the application interface or API layer with the privacy scanning modules.
-
----
-
-# 🔍 Scanner Modules
-
-The scanner functionality is divided into separate modules to keep the project modular and easier to extend.
-
----
+It connects the application interface or API routes to the scanner functionality, depending on the application's implementation.
 
 ## `backend/scanner/browser.py`
 
-This module handles browser-based website scanning.
+Handles browser-based website scanning.
 
-Its responsibilities include:
+Its responsibilities may include:
 
-* Launching the browser
-* Opening the target website
-* Monitoring browser activity
-* Collecting website metadata
-* Recording the final URL
-* Observing network requests
-* Coordinating privacy analysis modules
-
-Browser automation is useful because modern websites often load privacy-related resources dynamically through JavaScript.
-
----
+- Launching the browser
+- Opening the target website
+- Observing network requests
+- Collecting website metadata
+- Recording the final URL
+- Coordinating scanning operations
 
 ## `backend/scanner/domains.py`
 
-This module handles domain analysis.
-
-Its responsibilities include:
-
-* Extracting domains from URLs
-* Identifying the main website domain
-* Comparing request domains
-* Identifying first-party domains
-* Identifying third-party domains
-
-Example:
-
-```text
-Target Website:
-example.com
-```
-
-Requests:
-
-```text
-example.com/script.js
-cdn.example.com/style.css
-analytics.example-service.com/tracker.js
-```
-
-The domain analysis module can help classify external domains relative to the scanned website.
-
----
+Handles domain extraction and classification, including identifying first-party and third-party domains.
 
 ## `backend/scanner/cookies.py`
 
-This module handles cookie analysis.
-
-Its responsibilities include processing cookie information collected during the browser session.
-
-Possible information analyzed includes:
-
-* Cookie names
-* Cookie domains
-* Cookie security attributes
-* HTTP-only status
-* SameSite configuration
-* Expiration information
-
----
+Processes cookie information collected during the browser session.
 
 ## `backend/scanner/trackers.py`
 
-This module is responsible for identifying known tracking services.
-
-It compares detected domains or requests with tracker information stored in:
-
-```text
-backend/data/trackers.json
-```
-
-This separation allows the tracker database to be updated without requiring major changes to the browser scanning logic.
-
----
+Identifies known tracking services using the tracker information available to the scanner.
 
 ## `backend/scanner/storage.py`
 
-This module handles browser storage analysis.
+Examines supported browser storage mechanisms and related privacy indicators.
 
-It is responsible for collecting and processing information related to browser storage mechanisms used by scanned websites.
+## `backend/scanner/consent.py`
 
-This helps expand privacy analysis beyond traditional cookies.
+Analyzes consent-related website elements and indicators.
 
----
+## `backend/scanner/fingerprinting.py`
+
+Examines observable indicators associated with browser fingerprinting.
+
+## `backend/scanner/privacy_policy.py`
+
+Supports analysis of available privacy policy information.
+
+## `backend/scanner/privacy_signals.py`
+
+Collects or evaluates privacy-related indicators for the overall analysis.
 
 ## `backend/scanner/__init__.py`
 
-This file identifies the scanner directory as a Python package and supports organized imports between scanner modules.
+Marks the scanner directory as a Python package.
 
 ---
 
@@ -353,35 +334,9 @@ This file identifies the scanner directory as a Python package and supports orga
 
 ## `backend/data/trackers.json`
 
-This file contains information used for tracker detection.
+Stores the local tracker information used by the tracker detection module.
 
-Keeping tracker information separate from the scanning code provides several benefits:
-
-* Easier tracker database updates
-* Cleaner scanner logic
-* Expandable tracker categories
-* Better maintainability
-* Easier addition of new tracking services
-
-The scanner can compare detected domains against the tracker data during analysis.
-
----
-
-# 📸 Screenshots
-
-## `backend/screenshots/`
-
-This directory is used to store screenshots captured during website scans.
-
-Screenshots can provide visual context for a scan and can later be used for:
-
-* Privacy reports
-* Website documentation
-* Historical comparisons
-* Debugging
-* User interfaces
-
-Depending on the implementation, generated screenshots may be excluded from version control through `.gitignore`.
+Keeping tracker data separate from the scanning logic makes the database easier to maintain and extend.
 
 ---
 
@@ -389,128 +344,88 @@ Depending on the implementation, generated screenshots may be excluded from vers
 
 ## Python
 
-Python is used for:
+Used for backend development, browser scanning, data processing, and privacy analysis.
 
-* Scanner logic
-* Data processing
-* Backend development
-* Privacy analysis
-
----
+Documentation: https://docs.python.org/3/
 
 ## Playwright
 
-Playwright is used for browser automation.
+Used for browser automation, website navigation, network observation, cookie collection, and other supported browser operations.
 
-It enables the scanner to:
+Documentation: https://playwright.dev/python/
 
-* Launch a browser
-* Load websites
-* Execute JavaScript
-* Observe network requests
-* Access cookies
-* Access browser storage
-* Capture screenshots
+## FastAPI
+
+Used if configured in the project for providing HTTP API endpoints and connecting requests to the scanning functionality.
+
+Documentation: https://fastapi.tiangolo.com/
 
 ---
 
 # ⚙️ Requirements
 
-Before running the project, make sure the following are installed.
+Before running the project, install:
 
-## Python
+- Python 3.10 or higher
+- pip
+- Dependencies listed in `requirements.txt`
+- Playwright browser binaries
 
-Recommended:
-
-```text
-Python 3.10 or higher
-```
-
-Check your Python version:
+Check your Python installation:
 
 ```bash
 python --version
-```
-
-or:
-
-```bash
-python3 --version
 ```
 
 ---
 
 # 📦 Installation
 
-## 1. Clone or Download the Project
-
-Navigate to the project directory:
+## 1. Navigate to the Project Directory
 
 ```bash
 cd privacy-scanner
 ```
 
----
-
 ## 2. Create a Virtual Environment
-
-Create a virtual environment:
 
 ```bash
 python -m venv venv
 ```
 
----
-
 ## 3. Activate the Virtual Environment
 
-### Windows
+**Windows:**
 
 ```bash
 venv\Scripts\activate
 ```
 
-### Linux / macOS
+**Linux / macOS:**
 
 ```bash
 source venv/bin/activate
 ```
 
----
-
 ## 4. Install Dependencies
-
-Install all required Python packages:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
 ## 5. Install Playwright Browsers
 
-After installing the Python dependencies, install the browser binaries required by Playwright:
-
 ```bash
-playwright install
-```
-
-If the command is not recognized, use:
-
-```bash
-python -m playwright install
+python -m playwright install chromium
 ```
 
 ---
 
 # ▶️ Running the Project
 
-From the project root directory, make sure the virtual environment is activated.
+Run commands from the project root directory with the virtual environment activated.
 
-Then run the backend according to the application configuration.
-
-For a FastAPI application, the expected command is:
+If `backend/main.py` defines a FastAPI application named `app`, run:
 
 ```bash
 uvicorn backend.main:app --reload
@@ -522,282 +437,116 @@ The development server will typically be available at:
 http://127.0.0.1:8000
 ```
 
-If API documentation is enabled, FastAPI documentation is typically available at:
+If API documentation is enabled, access it at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-The exact available routes depend on the implementation in:
-
-```text
-backend/main.py
-```
+The exact startup command and available endpoints depend on the implementation in `backend/main.py`.
 
 ---
 
 # 🔎 How the Scanner Works
 
-The Privacy Scanner follows a browser-based analysis workflow.
+The scanner follows a modular website analysis workflow.
 
 ```text
 User Provides Website URL
-            │
-            ▼
-      Backend Application
-            │
-            ▼
-      Browser Scanner
-            │
-            ▼
-    Website Loaded in Browser
-            │
-            ├──────────────► Network Analysis
-            │
-            ├──────────────► Domain Analysis
-            │
-            ├──────────────► Cookie Analysis
-            │
-            ├──────────────► Tracker Detection
-            │
-            ├──────────────► Storage Analysis
-            │
-            └──────────────► Screenshot Capture
-                            │
-                            ▼
-                      Scan Results
+          |
+          v
+    Backend Application
+          |
+          v
+     Browser Scanner
+          |
+          v
+  Website Loaded in Browser
+          |
+          +----> Network Analysis
+          |
+          +----> Domain Analysis
+          |
+          +----> Cookie Analysis
+          |
+          +----> Tracker Detection
+          |
+          +----> Storage Analysis
+          |
+          +----> Consent Analysis
+          |
+          +----> Fingerprinting Analysis
+          |
+          +----> Privacy Policy Analysis
+          |
+          v
+    Privacy Signals
+          |
+          v
+      Scan Results
 ```
 
----
-
-# 📊 Privacy Analysis Workflow
-
-When a website is scanned, the following process takes place:
-
-1. A target URL is provided.
-2. The browser scanner launches a browser.
-3. The target website is opened.
-4. Redirect behavior is observed.
-5. The final URL is recorded.
-6. Network requests are collected.
-7. Domains are extracted from those requests.
-8. First-party and third-party domains are analyzed.
-9. Cookies are collected and processed.
-10. Detected domains are compared against known tracker data.
-11. Browser storage information is analyzed.
-12. A screenshot may be captured.
-13. Results are returned in a structured format.
+The precise execution order depends on how the scanner modules are integrated.
 
 ---
 
 # 📋 Example Privacy Information
 
-A scan may collect information similar to:
+A scan may return structured information about a website.
+
+The following is an illustrative example, not a guarantee of the application's exact response format.
 
 ```json
 {
   "url": "https://example.com",
-  "final_url": "https://www.example.com",
-  "title": "Example Website",
+  "final_url": "https://example.com",
+  "title": "Example Domain",
   "cookies": [],
   "third_party_domains": [],
   "trackers": [],
   "storage": {},
-  "screenshot": null
+  "privacy_signals": []
 }
 ```
 
-> The exact structure of the scan result depends on the implementation in the current scanner modules.
-
----
-
-# 🧠 Why Browser-Based Analysis?
-
-Many modern websites rely heavily on JavaScript.
-
-A simple HTML request may not reveal all privacy-related behavior.
-
-For example:
-
-```text
-Website HTML
-     │
-     ▼
-JavaScript Executes
-     │
-     ▼
-Additional Resources Load
-     │
-     ├── Analytics Scripts
-     ├── Advertising Resources
-     ├── Social Media Widgets
-     └── Third-Party Services
-```
-
-Browser automation allows the Privacy Scanner to observe these resources while the website is running.
-
-This provides more realistic information about website behavior than static HTML analysis alone.
+The actual fields and output structure depend on the backend implementation.
 
 ---
 
 # 🔐 Privacy Interpretation
 
-Privacy Scanner detects technical indicators.
+Privacy Scanner identifies technical indicators that can help users investigate website behavior.
 
-These indicators should be interpreted carefully.
+These indicators require context.
 
-For example:
+- **Third-party domains:** May provide analytics, content delivery, or other legitimate services.
+- **Cookies:** May be necessary for authentication, security, or user preferences.
+- **Known trackers:** Indicate a match against the available tracker database.
+- **Fingerprinting indicators:** Do not necessarily prove successful identification of a user.
+- **Consent elements:** Do not establish that consent is legally valid.
+- **Privacy policies:** Automated analysis cannot guarantee legal compliance.
 
-### Third-Party Domain
-
-A third-party domain may provide:
-
-* Fonts
-* Images
-* Content delivery
-* Security services
-* Analytics
-* Advertising
-
-Therefore, a third-party request is not automatically a privacy violation.
+The scanner's findings should be interpreted as technical observations rather than definitive legal conclusions.
 
 ---
 
-### Cookie
+# ⚠️ Limitations
 
-A cookie may be necessary for:
-
-* Login sessions
-* Security
-* User preferences
-* Shopping carts
-
-Therefore, the presence of cookies does not automatically indicate tracking.
-
----
-
-### Known Tracker
-
-A detected known tracker indicates that a domain or service matched the scanner's tracker information.
-
-The actual privacy impact can depend on:
-
-* Website configuration
-* Tracker functionality
-* Data collected
-* User consent
-* Regional privacy regulations
-
----
-
-# ⚠️ Current Scope and Limitations
-
-The scanner analyzes observable website behavior in a browser environment.
-
-It may not detect every privacy technology used by a website.
-
-Examples of advanced techniques that may require future improvements include:
-
-* Advanced browser fingerprinting
-* Canvas fingerprinting
-* WebGL fingerprinting
-* Audio fingerprinting
-* Server-side tracking
-* Encrypted tracking requests
-* Authenticated user tracking
-* Cross-device tracking
-* Tracking performed after user interaction
-
-The results should therefore be considered an analysis of observable browser behavior rather than a complete privacy audit.
-
----
-
-# 🔮 Future Improvements
-
-Possible future additions include:
-
-* Privacy risk scoring
-* Tracker severity classification
-* Advanced fingerprinting detection
-* Consent banner analysis
-* Privacy policy analysis
-* Historical scan comparison
-* Scan database
-* User authentication
-* Web dashboard
-* PDF reports
-* HTML reports
-* Exportable JSON reports
-* Scheduled website scans
-* Tracker database updates
-* Advanced visualization
-
----
-
-# 🔐 Ethical and Responsible Use
-
-Privacy Scanner should be used responsibly.
-
-Use the project for:
-
-* Websites you own
-* Websites you are authorized to analyze
-* Publicly accessible websites for legitimate research
-* Educational purposes
-* Privacy and security research
-
-Do not use the project to:
-
-* Attack websites
-* Overload servers
-* Bypass security mechanisms
-* Circumvent access controls
-* Collect unauthorized personal information
-
-Always respect applicable laws, website policies, and responsible scanning practices.
-
----
-
-# 📄 `.gitignore`
-
-The `.gitignore` file should be used to prevent unnecessary or sensitive files from being uploaded to version control.
-
-Typical files and directories that may be ignored include:
-
-```text
-venv/
-__pycache__/
-*.pyc
-.env
-backend/screenshots/*
-```
-
-Depending on the project requirements, screenshots may be included or excluded from Git.
-
----
-
-# 🤝 Contributing
-
-Future contributions can focus on improving:
-
-* Tracker databases
-* Domain classification
-* Cookie analysis
-* Browser storage analysis
-* Scan performance
-* Privacy scoring
-* Reporting
-* User interface development
-
-The modular structure allows new scanner components to be added without significantly changing the existing codebase.
+- The scanner can only analyze behavior observable during the scan.
+- Some website behavior requires user interaction or additional time to appear.
+- Tracker detection depends on the available tracker database.
+- Fingerprinting detection may not identify every technique.
+- Privacy policy analysis may not fully understand complex legal language.
+- Consent interfaces may vary across websites and regions.
+- A scan cannot guarantee that all privacy risks have been identified.
 
 ---
 
 
 # 👨‍💻 Project Status
 
-**Current Status: Active Development**
+**Current Progress:**
 
-Privacy Scanner currently provides a modular browser-based foundation for analyzing website privacy behavior, including domain analysis, cookie analysis, tracker detection, storage analysis, and browser-based scanning.
+Privacy Scanner includes modular components for browser-based website scanning, domain analysis, cookie analysis, tracker detection, browser storage analysis, consent analysis, fingerprinting indicators, privacy policy analysis, and privacy signals.
 
-The project can be expanded further with advanced privacy analysis, reporting, scoring, and visualization features.
+The project is designed to help users understand observable website behavior and investigate potential privacy concerns.
