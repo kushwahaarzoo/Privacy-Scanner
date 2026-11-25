@@ -1,6 +1,7 @@
 
 import re
 from urllib.parse import urlparse
+from backend.scanner.dark_patterns import analyze_dark_patterns
 
 from playwright.sync_api import (
     sync_playwright,

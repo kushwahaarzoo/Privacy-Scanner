@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Audit Dashboard</title>
+<style>
+  :root { --bg:#f5f7fb; --card:#fff; --line:#dde3ee; --text:#1c2333; --muted:#667085; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, Segoe UI, Arial, sans-serif; background:var(--bg); color:var(--text); }
+  header { background:#1c2333; color:#fff; padding:14px 24px; }
+  header h1 { margin:0; font-size:18px; }
+  main { max-width:1100px; margin:20px auto; padding:0 16px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 10px; font-size:16px; }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  input[type=text] { flex:1; min-width:260px; padding:9px 10px; border:1px solid var(--line); border-radius:6px; }
+  select, button, a.btn { padding:9px 14px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:14px; text-decoration:none; color:var(--text); }
+  button.primary { background:#2457d6; color:#fff; border-color:#2457d6; }
+  #status { margin-top:10px; color:var(--muted); font-size:14px; }
+  .summary { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .grade { width:92px; height:92px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+  .grade b { font-size:34px; line-height:1; } .grade span { font-size:12px; }
+  .kv { font-size:13px; color:var(--muted); line-height:1.7; word-break:break-all; }
+  .kv b { color:var(--text); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; word-break:break-word; }
+  th { background:#f0f3fa; white-space:nowrap; }
+  td:nth-child(1), td:nth-child(2) { white-space:nowrap; }
+  .sev { padding:2px 8px; border-radius:10px; font-size:12px; color:#fff; }
+  .sev-high { background:#d1242f; } .sev-medium { background:#bf8700; }
+  .sev-low { background:#2da44e; } .sev-review { background:#8250df; } .sev-info { background:#667085; }
+  .barrow { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:13px; }
+  .barrow span { width:110px; } .bar { flex:1; background:#eef1f7; height:14px; border-radius:7px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:#2457d6; } .barrow b { width:30px; text-align:right; }
+  .muted { color:var(--muted); font-size:13px; }
+  .ok { color:#1a7f37; font-weight:600; } .bad { color:#d1242f; font-weight:600; }
+  @media print {
+    .noprint { display:none !important; }
+    body { background:#fff; }
+    .card { break-inside:avoid; border:1px solid #ccc; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    @page { margin:12mm; }
+  }
+</style>
+</head>
+<body>
+<header><h1>PrivacyScan: An Automated Website Privacy and Tracking Analysis System
+</h1></header>
+<main>
+  <div class="card noprint">
+    <div class="controls">
+      <input id="url" type="text" placeholder="https://example.com" value="https://example.com">
+      <button class="primary" onclick="startAudit()">Run audit</button>
+      <select id="saved" onchange="loadSaved(this.value)"><option value="">Load saved report…</option></select>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div id="actions" class="card noprint" style="display:none">
+    <div class="controls">
+      <button onclick="window.print()">Print / Save as PDF (browser)</button>
+      <a id="pdfLink" class="btn" href="#">Download PDF (server)</a>
+      <a id="jsonLink" class="btn" href="#" target="_blank">Raw JSON</a>
+    </div>
+  </div>
+
+  <div id="report"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const GRADE = {A:"#1a7f37", B:"#2da44e", C:"#bf8700", D:"#d1242f", F:"#82071e"};
+
+let currentId = null;
+const exp = e => { try { return e > 0 ? new Date(e * 1000).toISOString().slice(0, 10) : "session"; } catch { return "far future"; } };
+const yes = v => v ? "yes" : "–";
+
+function ev(e) {
+  if (e == null) return "";
+  if (Array.isArray(e)) return e.map(x => typeof x === "object" ? JSON.stringify(x) : x).join(", ");
+  return typeof e === "object" ? JSON.stringify(e) : String(e);
+}
+function setStatus(t) { $("status").textContent = t; }
+
+async function startAudit() {
+  const url = $("url").value.trim();
+  if (!url) return;
+  setStatus("Starting…");
+  const r = await fetch("/audit", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({url})
+  });
+  if (!r.ok) { setStatus("Error: " + await r.text()); return; }
+  const {job_id} = await r.json();
+  poll(job_id);
+}
+
+async function poll(id) {
+  try {
+    const r = await fetch("/audit/" + id);
+    const j = await r.json();
+    if (j.status === "done") { show(id, j.result); setStatus("Done."); refreshSaved(); return; }
+    if (j.status === "failed") { setStatus("Failed: " + j.error); return; }
+    setStatus(j.status + " — " + (j.stage || "waiting"));
+  } catch (e) { setStatus("Waiting for server…"); }
+  setTimeout(() => poll(id), 4000);
+}
+
+async function refreshSaved() {
+  try {
+    const list = await (await fetch("/reports")).json();
+    $("saved").innerHTML = '<option value="">Load saved report…</option>' +
+      list.filter(x => x.status === "done").map(x =>
+        `<option value="${esc(x.job_id)}">${esc(x.url)} — ${esc(x.grade)} (${esc(x.score)})</option>`).join("");
+  } catch (e) {}
+}
+
+async function loadSaved(id) {
+  if (!id) return;
+  const j = await (await fetch("/audit/" + id)).json();
+  if (j.status === "done") { show(id, j.result); setStatus("Loaded saved report."); }
+}
+
+function show(id, result) {
+  currentId = id;
+  $("actions").style.display = "block";
+  $("pdfLink").href = "/audit/" + id + "/pdf";
+  $("jsonLink").href = "/audit/" + id;
+  render(result);
+}
+
+function table(headers, rows, empty) {
+  if (!rows.length) return `<p class="muted">${esc(empty || "None observed.")}</p>`;
+  return `<table><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr>` +
+    rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + `</table>`;
+}
+const sev = s => `<span class="sev sev-${esc(s || "info")}">${esc(s || "info")}</span>`;
+
+function extraCards(r) {
+  const site = r.site || {}, info = site.scan_info || {};
+  const ck = r.cookies || {}, cs = ck.summary || {};
+  const fp = r.fingerprinting || {}, ps = r.privacy_signals || {}, cmp = ps.comparison || {};
+  const st = r.storage || {}, dp = r.dark_patterns || {};
+
+  const btnRows = [["Accept", dp.accept], ["Reject", dp.reject], ["Manage", dp.manage]]
+    .filter(([, b]) => b)
+    .map(([role, b]) => [role, esc(b.text), esc(Math.round(b.area)), esc(b.fontSize),
+                         esc((b.contrast || 0).toFixed(1)), esc(b.bg)]);
+
+  const storageRows = []
+    .concat((st.local_storage || []).map(x => ["localStorage", esc(x.key), esc(x.bytes)]))
+    .concat((st.session_storage || []).map(x => ["sessionStorage", esc(x.key), esc(x.bytes)]))
+    .concat((st.indexed_db || []).map(x => ["IndexedDB", esc(x.name), ""]))
+    .concat((st.cache_storage || []).map(x => ["CacheStorage", esc(x), ""]))
+    .concat((st.service_workers || []).map(x => ["ServiceWorker", esc(x.scope), ""]));
+
+  return `
+  <div class="card"><h2>Site overview</h2>
+    <div class="kv">
+      <div><b>Final URL:</b> ${esc(info.final_url)}</div>
+      <div><b>HTTP status:</b> ${esc(info.status_code)} · <b>Title:</b> ${esc(info.title)}</div>
+      <div><b>Total requests:</b> ${esc(site.total_requests)} ·
+           <b>First-party domains:</b> ${(site.first_party_domains || []).length} ·
+           <b>Third-party domains:</b> ${(site.third_party_domains || []).length}</div>
+    </div>
+    ${r.has_screenshot ? `<p class="muted noprint">Page screenshot</p>
+      <div style="max-height:360px;overflow:auto;border:1px solid var(--line)">
+        <img src="/audit/${esc(currentId)}/screenshot" style="width:100%" alt="screenshot"></div>` : ""}
+  </div>
+
+  <div class="card"><h2>Tracker cookies (${(r.tracker_cookies || []).length})</h2>
+    <p class="muted">Analytics/advertising cookies, classified by name and by the domain that set them.</p>
+    ${table(["Cookie","Domain","Category","Attributed to","Before choice","After reject","After accept"],
+      (r.tracker_cookies || []).map(c => [esc(c.name), esc(c.domain), esc(c.category), esc(c.attributed_to || ""),
+        yes(c.before_choice), c.after_reject ? '<span class="bad">yes</span>' : "–", yes(c.after_accept)]),
+      "No tracker cookies identified.")}
+  </div>
+
+  <div class="card"><h2>Known trackers (${(r.trackers || []).length})</h2>
+    ${table(["Tracker","Company","Category","Domain","Requests","Before choice","After reject"],
+      (r.trackers || []).map(t => [esc(t.name), esc(t.company), esc(t.category), esc(t.domain), esc(t.requests),
+        t.before_choice ? '<span class="bad">yes</span>' : "–", t.after_reject ? '<span class="bad">yes</span>' : "–"]),
+      "No known trackers detected.")}
+  </div>
+
+  <div class="card"><h2>Third-party domains (${(r.third_parties || []).length})</h2>
+    ${table(["Domain","Requests","Resource types","Known tracker","Company","Category"],
+      (r.third_parties || []).map(t => [esc(t.domain), esc(t.requests), esc((t.resource_types || []).join(", ")),
+        esc(t.tracker || ""), esc(t.company || ""), esc(t.category || "")]),
+      "No third-party requests.")}
+  </div>
+
+  <div class="card"><h2>All cookies (total ${esc(cs.total || 0)}, third-party ${esc(cs.third_party || 0)}, secure ${esc(cs.secure || 0)}, HttpOnly ${esc(cs.http_only || 0)})</h2>
+    ${table(["Name","Domain","Party","Category","Secure","HttpOnly","SameSite","Expires"],
+      (ck.items || []).map(c => [esc(c.name), esc(c.domain), esc(c.party), esc(c.category),
+        yes(c.secure), yes(c.http_only), esc(c.same_site || ""), esc(exp(c.expires))]),
+      "No cookies observed.")}
+  </div>
+
+  <div class="card"><h2>Fingerprinting-related API use</h2>
+    <p class="muted">Events: ${esc(fp.events_observed)} · Frames checked: ${esc(fp.frames_checked)}. These APIs also have legitimate uses.</p>
+    ${table(["API","Observed calls"],
+      Object.entries(fp.api_call_counts || {}).map(([k, v]) => [esc(k), esc(v)]),
+      "No monitored fingerprinting APIs were called.")}
+  </div>
+
+  <div class="card"><h2>GPC / Do-Not-Track comparison</h2>
+    <div class="kv">
+      <div><b>Browser values with signals on:</b> ${esc(JSON.stringify(ps.gpc_dnt_browser_values || {}))}</div>
+      <div><b>Trackers only in baseline:</b> ${esc(ev(cmp.trackers_only_in_baseline))}</div>
+      <div><b>Trackers only with signals on:</b> ${esc(ev(cmp.trackers_only_with_signals))}</div>
+      <div><b>Third-party domains only in baseline:</b> ${esc(ev(cmp.third_party_domains_only_in_baseline))}</div>
+    </div>
+  </div>
+
+  <div class="card"><h2>Consent scenarios</h2>
+    ${table(["Scenario","Button found","Clicked","Button text","Requests","3rd-party requests","Trackers"],
+      Object.entries(r.consent_detail || {}).map(([n, d]) => { const b = d.consent_button || {};
+        return [esc(n), yes(b.found), yes(b.clicked), esc(b.text || ""), esc(d.request_count),
+                esc(d.third_party_request_count), esc(d.tracker_count)]; }))}
+    <p class="muted" style="margin-top:12px">Consent banner buttons (size in px², contrast ratio)</p>
+    ${table(["Role","Text","Area","Font px","Contrast","Background"], btnRows, "No banner buttons detected.")}
+  </div>
+
+  <div class="card"><h2>Privacy policy topic coverage</h2>
+    ${table(["Topic","Mentioned","Matched phrases"],
+      Object.entries(r.policy_topics || {}).map(([k, v]) => [esc(k), yes(v.mentioned), esc((v.matched_phrases || []).join(", "))]),
+      "Policy text not available.")}
+  </div>
+
+  <div class="card"><h2>Browser storage</h2>
+    <p class="muted">Names and sizes only; stored values are never kept.</p>
+    ${table(["Type","Name / key","Size (bytes)"], storageRows, "No browser storage used.")}
+  </div>`;
+}
+
+
+function render(r) {
+  const s = r.score || {}, findings = s.findings || [];
+  const cons = r.consent || {}, tc = cons.tracker_counts || {}, cc = cons.cookie_counts || {};
+  const max = Math.max(1, tc.before_choice || 0, tc.after_reject || 0, tc.after_accept || 0,
+                          cc.before_choice || 0, cc.after_reject || 0, cc.after_accept || 0);
+  const bar = (l, v) => `<div class="barrow"><span>${l}</span><div class="bar"><i style="width:${(v||0)/max*100}%"></i></div><b>${v ?? 0}</b></div>`;
+  const dp = r.dark_patterns || {}, leaks = r.pii_leaks || {}, claims = r.claims || {};
+
+  const claimRows = Object.entries(claims)
+    .filter(([k, v]) => v && typeof v === "object" && !Array.isArray(v) && "value" in v)
+    .map(([k, v]) => [esc(k), esc(v.value), esc(v.quote || ""),
+      v.quote ? (v.quote_verified ? '<span class="ok">verified</span>' : '<span class="bad">NOT found in policy</span>') : ""]);
+
+  $("report").innerHTML = `
+  <div class="card summary">
+    <div class="grade" style="background:${GRADE[s.grade] || "#444"}"><b>${esc(s.grade || "?")}</b><span>${esc(s.score ?? "?")}/100</span></div>
+    <div class="kv">
+      <div><b>Target:</b> ${esc(r.url)}</div>
+      <div><b>Privacy policy:</b> ${esc(r.policy_url || "not found")}</div>
+      <div><b>Ledger integrity:</b> <span class="${r.ledger_valid ? "ok" : "bad"}">${r.ledger_valid ? "valid" : "BROKEN"}</span></div>
+      <div><b>Evidence root hash:</b> ${esc(r.evidence_root_hash)}</div>
+      <div><b>Claim extraction:</b> ${esc(claims._method || "n/a")}</div>
+    </div>
+  </div>
+
+  <div class="card"><h2>Findings (${findings.length})</h2>
+    ${table(["Severity","ID","Detail","Evidence","Regulations"],
+      findings.map(f => [sev(f.severity), esc(f.id || f.code),
+        esc(f.message || f.detail || f.claim || ""), esc(ev(f.evidence)),
+        esc((f.regulations || []).join(", "))]))}
+  </div>
+
+  <div class="card"><h2>Policy vs. observed behaviour</h2>
+    ${table(["ID","Policy says","Scanner observed"],
+      (r.contradictions || []).map(c => [esc(c.id), esc(c.claim || ""), esc(ev(c.evidence))]),
+      "No contradictions detected (or no policy claims available).")}
+  </div>
+
+  <div class="card"><h2>Consent behaviour</h2>
+    <p class="muted">Known tracker domains</p>
+    ${bar("Before choice", tc.before_choice)}${bar("After reject", tc.after_reject)}${bar("After accept", tc.after_accept)}
+    <p class="muted">Cookies</p>
+    ${bar("Before choice", cc.before_choice)}${bar("After reject", cc.after_reject)}${bar("After accept", cc.after_accept)}
+  </div>
+
+  <div class="card"><h2>Consent banner dark patterns</h2>
+    ${table(["Severity","ID","Detail"],
+      (dp.findings || []).map(f => [sev(f.severity), esc(f.id), esc(f.detail)]),
+      "No dark patterns detected (or no banner found).")}
+  </div>
+
+  <div class="card"><h2>Canary email leak test</h2>
+    <p class="muted">Fields filled: ${esc(leaks.fields_filled)} · Leaks: ${esc(leaks.leak_count)}</p>
+    ${table(["Destination","Encoding","Third party","Known tracker","Found in"],
+      (leaks.leaks || []).map(l => [esc(l.destination), esc(l.encoding), esc(l.third_party),
+        esc(l.known_tracker || ""), esc(l.in)]),
+      "The synthetic email was not observed in any outgoing request.")}
+  </div>
+
+  <div class="card"><h2>Claims extracted from privacy policy</h2>
+    ${table(["Claim","Value","Quote","Evidence check"], claimRows, "No claims extracted.")}
+  </div>
+
+  ${extraCards(r)}
+  <div class="card"><h2>Scan timings (seconds)</h2>
+    ${table(["Stage","Seconds"], Object.entries(r.timings_seconds || {}).map(([k, v]) => [esc(k), esc(v)]))}
+  </div>`;
+}
+
+refreshSaved();
+</script>
+</body>
+</html>

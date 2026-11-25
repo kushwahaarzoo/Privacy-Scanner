@@ -1,9 +1,13 @@
 .venv/
+.venv-1/
 __pycache__/
 *.pyc
 
 backend/screenshots/*
 !backend/screenshots/.gitkeep
+
+backend/reports/
+audit_report.json
 
 .env
 .vscode/

@@ -124,7 +124,7 @@ def _discover_policy_links(page, start_url: str) -> list[dict]:
 
     for anchor in anchors:
         href = urljoin(start_url, anchor.get("href", ""))
-        text = re.sub(r"\\s+", " ", anchor.get("text", "")).strip()
+        text = re.sub(r"\s+", " ", anchor.get("text", "")).strip()
 
         if not _valid_http_url(href):
             continue
@@ -226,7 +226,7 @@ def _fetch_policy_text(browser, policy_url: str) -> dict:
         return {
             "url": page.url,
             "http_status": status,
-            "text": re.sub(r"\\s+", " ", text).strip()[:100000],
+            "text": re.sub(r"\s+", " ", text).strip()[:100000],
         }
     except PlaywrightTimeoutError:
         return {
@@ -487,4 +487,27 @@ def scan_privacy_policy(url: str) -> dict:
             }
         finally:
             context.close()
+            browser.close()
+
+def get_policy_text(url: str) -> dict:
+    """Return the text of the site's privacy policy (first usable candidate)."""
+    if not _valid_http_url(url):
+        raise ValueError("A valid HTTP or HTTPS URL is required.")
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
+        try:
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=25000)
+            links = _discover_policy_links(page, url)
+            context.close()
+
+            for candidate in links[:3]:
+                result = _fetch_policy_text(browser, candidate["url"])
+                if result.get("text"):
+                    return {"url": result["url"], "text": result["text"]}
+
+            return {"url": None, "text": ""}
+        finally:
             browser.close()
